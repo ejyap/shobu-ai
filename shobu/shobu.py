@@ -29,6 +29,9 @@ def checkBounds(position):
 
 class ShobuGame:
 
+    '''ShobuGame provides the necessary abstractions for an agent to play the game. It simply keeps track of
+    the current board state and possible moves from the current state.'''
+
     def __init__(self):
         self.reset()
 
@@ -38,8 +41,23 @@ class ShobuGame:
     def make_move(self, move):
         self.state = self.state.make_move(move)
 
+    def get_moves(self):
+        if self.state:
+            return self.state.get_valid_moves()
+        return []
+
+    def get_winner(self):
+        return self.state.winner
+
+    def get_turn_player(self):
+        return self.state.player
+
 
 class Move:
+    '''Move defines an action. first_board specifies the board and first_source specifies the board position of the
+    stone to be moved as part of the passive move. second_board and second_source characterize the offensive move.
+    The board variables can be a number between 0 and 3, specifying the board number. The source variables are tuples,
+    specifying the coordinate of the stone to be moved at the specified board number.'''
 
     def __init__(self, first_board, first_source, second_board, second_source, action):
         self.first_board = first_board
@@ -48,7 +66,6 @@ class Move:
         self.second_board = second_board
         self.second_source = second_source
 
-    # Store board value
     def __hash__(self):
         hash_value1 = self.first_board + self.first_source[0] * 10 + self.first_source[1] * 100 + self.action[0] * 1000
         +self.action[1] * 10000
@@ -69,6 +86,12 @@ class Move:
 
 class Board:
 
+    '''Board represents a game state. A game state is characterized by a (4, 16) numpy array. The first dimension
+     represents the 4 boards. The boards 0 and 1 represent the WHITE home boards, and the boards 2 and 3 represent the
+     BLACK home boards. The second dimension represents the 16 cells in a board. Each cell is one of 3 possible
+    values: 0 (Empty cell), 1 (Black stone), -1 (White stone). A state is also characterized by the current turn
+    player and by the winner at a given state (if there is one).'''
+
     def __init__(self, boards=None, player=1, winner=0):
         if boards is None:
             boards = np.zeros((4, HEIGHT, WIDTH))
@@ -82,7 +105,6 @@ class Board:
                 self.boards = boards
             elif boards.shape == (64,):
                 self.boards = boards.reshape((4, HEIGHT * WIDTH))
-        print(self.boards)
         self.player = player
         self.winner = winner
 
