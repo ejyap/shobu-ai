@@ -12,20 +12,12 @@ HEIGHT = 4
 ACTIONS = [(-1, 1), (0, 1), (1, 1), (1, 0), (1, -1), (0, -1), (-1, -1), (-1, 0),
            (-2, 2), (0, 2), (2, 2), (2, 0), (2, -2), (0, -2), (-2, -2), (-2, 0)]
 
-
-def getIndex(position):
-    x, y = position
-    return (x * HEIGHT) + y
-
-
-def getPosition(index):
-    return (index // HEIGHT, index % WIDTH)
-
-
 def checkBounds(position):
     x, y = position
     return x < HEIGHT and x >= 0 and y < WIDTH and y >= 0
 
+def getPosition(index):
+    return (index//HEIGHT, index%WIDTH)
 
 class ShobuGame:
 
@@ -86,10 +78,10 @@ class Move:
 
 class Board:
 
-    '''Board represents a game state. A game state is characterized by a (4, 16) numpy array. The first dimension
+    '''Board represents a game state. A game state is characterized by a (4, 4, 4) numpy array. The first dimension
      represents the 4 boards. The boards 0 and 1 represent the WHITE home boards, and the boards 2 and 3 represent the
-     BLACK home boards. The second dimension represents the 16 cells in a board. Each cell is one of 3 possible
-    values: 0 (Empty cell), 1 (Black stone), -1 (White stone). A state is also characterized by the current turn
+     BLACK home boards. The second and third dimensions represent the 16 cells in a board. Each cell is one of 3
+    possible values: 0 (Empty cell), 1 (Black stone), -1 (White stone). A state is also characterized by the current turn
     player and by the winner at a given state (if there is one).'''
 
     def __init__(self, boards=None, player=1, winner=0):
@@ -97,28 +89,11 @@ class Board:
             boards = np.zeros((4, HEIGHT, WIDTH))
             boards[:, 0, :] = WHITE
             boards[:, 3, :] = BLACK
-            self.boards = boards.reshape((4, HEIGHT * WIDTH))
+            self.boards = boards
         else:
-            if boards.shape == (4, HEIGHT, WIDTH):
-                self.boards = boards.reshape((4, HEIGHT * WIDTH))
-            elif boards.shape == (4, HEIGHT, WIDTH):
-                self.boards = boards
-            elif boards.shape == (64,):
-                self.boards = boards.reshape((4, HEIGHT * WIDTH))
+            self.boards = boards
         self.player = player
         self.winner = winner
-
-    def to_string(self):
-        return self.get_flattened_board().tostring()
-
-    def get_flattened_board(self):
-        return self.boards.flatten()
-
-    def get_unflattened_board(self, flattened_board):
-        return self.boards.reshape((4, HEIGHT * WIDTH))
-
-    def to_matrix(self):
-        return self.boards.reshape((4, HEIGHT, WIDTH))
 
     def check_goal_state(self):
         '''
@@ -127,19 +102,20 @@ class Board:
         '''
 
         for board in self.boards:
-            if 1 not in set(board):
+            if 1 not in set(board.flatten()):
                 return -1
-            if -1 not in set(board):
+            if -1 not in set(board.flatten()):
                 return 1
         return 0
 
-    # Check if a move capture any opponent's piece
     def does_move_capture(self, move):
+        '''Check if a move capture any opponent's piece. Returns tuple with (False, None) if move does not capture, and
+        (True, position) if move captures, where position is the position of the captured stone.'''
         if move.second_board == None:
             return (False, None)
 
         board2 = self.boards[move.second_board]
-        second_piece = board2[getIndex(move.second_source)]
+        second_piece = board2[move.second_source]
         x, y = move.second_source
         _x, _y = move.action
         xm, ym = 0, 0
@@ -151,7 +127,7 @@ class Board:
 
         piece_to_push = None
 
-        if board2[getIndex((x + xm, y + ym))] == second_piece * -1:
+        if board2[(x + xm, y + ym)] == second_piece * -1:
             piece_to_push = (x + xm, y + ym)
 
         if piece_to_push:
@@ -159,7 +135,7 @@ class Board:
                 return (True, piece_to_push)
 
         if abs(_x) == 2 or abs(_y) == 2:
-            if board2[getIndex((x + 2 * xm, y + 2 * ym))] == second_piece * -1:
+            if board2[(x + 2 * xm, y + 2 * ym)] == second_piece * -1:
                 piece_to_push = (x + 2 * xm, y + 2 * ym)
             if piece_to_push:
                 if not checkBounds((x + 3 * xm, y + 3 * ym)):
@@ -173,7 +149,7 @@ class Board:
         board1 = self.boards[board_index]
 
         x, y = source
-        first_piece = board1[getIndex(source)]
+        first_piece = board1[source]
         if not first_piece or first_piece != player:
             return False
 
@@ -190,7 +166,7 @@ class Board:
             return False
 
         # Check if there's already a stone in the desired square.
-        if board1[getIndex((x + xm, y + ym))]:
+        if board1[(x + xm, y + ym)]:
             return False
 
         # Determine whether moving a stone 2 steps into a direction is valid.
@@ -198,7 +174,7 @@ class Board:
             if not checkBounds((x + 2 * xm, y + 2 * ym)):
                 return False
 
-            if board1[getIndex((x + 2 * xm, y + 2 * ym))]:
+            if board1[(x + 2 * xm, y + 2 * ym)]:
                 return False
         return True
 
@@ -206,11 +182,11 @@ class Board:
     def validate_offensive_move(self, board_index, source, action, player=None):
         if not player:
             player = self.player
-        if board_index == None or source == None:
+        if board_index is None or source is None:
             return True
         board2 = self.boards[board_index]
         x, y = source
-        second_piece = board2[getIndex(source)]
+        second_piece = board2[source]
 
         if not second_piece or second_piece != player:
             return False
@@ -226,27 +202,27 @@ class Board:
             return False
 
         # Can't push/attack your own stone, so invalid.
-        if board2[getIndex((x + xm, y + ym))] == second_piece:
+        if board2[(x + xm, y + ym)] == second_piece:
             return False
 
         # If you push an enemy stone, another enemy stone can't be behind it
-        if board2[getIndex((x + xm, y + ym))] and checkBounds((x + 2 * xm, y + 2 * ym)) and board2[
-            getIndex((x + 2 * xm, y + 2 * ym))]:
+        if board2[(x + xm, y + ym)] and checkBounds((x + 2 * xm, y + 2 * ym)) and \
+                board2[(x + 2 * xm, y + 2 * ym)]:
             return False
 
         if abs(_x) == 2 or abs(_y) == 2:
             if not checkBounds((x + 2 * xm, y + 2 * ym)):
                 return False
 
-            if board2[getIndex((x + 2 * xm, y + 2 * ym))] == second_piece:
+            if board2[(x + 2 * xm, y + 2 * ym)] == second_piece:
                 return False
 
-            if board2[getIndex((x + xm, y + ym))] and checkBounds((x + 3 * xm, y + 3 * ym)) and board2[
-                getIndex((x + 3 * xm, y + 3 * ym))]:
+            if board2[(x + xm, y + ym)] and checkBounds((x + 3 * xm, y + 3 * ym)) and \
+                    board2[(x + 3 * xm, y + 3 * ym)]:
                 return False
 
-            if board2[getIndex((x + 2 * xm, y + 2 * ym))] and checkBounds((x + 3 * xm, y + 3 * ym)) and board2[
-                getIndex((x + 3 * xm, y + 3 * ym))]:
+            if board2[(x + 2 * xm, y + 2 * ym)] and checkBounds((x + 3 * xm, y + 3 * ym)) and \
+                    board2[(x + 3 * xm, y + 3 * ym)]:
                 return False
         return True
 
@@ -328,8 +304,7 @@ class Board:
             for j in board_indices2:
                 q = 0
                 board2 = self.boards[j]
-                for piece2 in board2:
-
+                for piece2 in board2.flatten():
                     if piece2:
                         x2, y2 = getPosition(q)
                         visited_pieces.add((x2, y2, j))
@@ -342,7 +317,7 @@ class Board:
                     q += 1
 
             p = 0
-            for piece1 in board1:
+            for piece1 in board1.flatten():
                 if piece1:
                     x, y = getPosition(p)
                     visited_pieces.add((x, y, i))
@@ -364,7 +339,7 @@ class Board:
             for i in board_indices1:
                 board1 = self.boards[i]
                 p = 0
-                for piece1 in board1:
+                for piece1 in board1.flatten():
                     if piece1 and player == piece1:
                         x, y = getPosition(p)
                         for _x, _y in ACTIONS:
@@ -378,24 +353,24 @@ class Board:
                     p += 1
         return moves
 
-    def make_move(self, move, mutate=False):
+    def make_move(self, move):
 
-        board = self if mutate else copy.deepcopy(self)
+        board = self
 
         board1 = board.boards[move.first_board]
         x, y = move.first_source
         _x, _y = move.action
 
-        board1[getIndex((x + _x, y + _y))] = board1[getIndex((x, y))]
-        board1[getIndex((x, y))] = EMPTY
+        board1[(x + _x, y + _y)] = board1[(x, y)]
+        board1[(x, y)] = EMPTY
 
-        if move.second_source == None:
+        if move.second_source is None:
             board.player = board.player * -1
             board.winner = board.check_goal_state()
             return board
 
         board2 = board.boards[move.second_board]
-        second_piece = board2[getIndex(move.second_source)]
+        second_piece = board2[move.second_source]
         x, y = move.second_source
         _x, _y = move.action
         xm, ym = 0, 0
@@ -407,24 +382,24 @@ class Board:
 
         piece_to_push = None
 
-        if board2[getIndex((x + xm, y + ym))] == second_piece * -1:
+        if board2[(x + xm, y + ym)] == second_piece * -1:
             piece_to_push = (x + xm, y + ym)
 
         if piece_to_push:
             if checkBounds((x + 2 * xm, y + 2 * ym)):
-                board2[getIndex((x + 2 * xm, y + 2 * ym))] = second_piece * -1
-            board2[getIndex(piece_to_push)] = 0
+                board2[(x + 2 * xm, y + 2 * ym)] = second_piece * -1
+            board2[piece_to_push] = 0
 
         if abs(_x) == 2 or abs(_y) == 2:
-            if board2[getIndex((x + 2 * xm, y + 2 * ym))] == second_piece * -1:
+            if board2[(x + 2 * xm, y + 2 * ym)] == second_piece * -1:
                 piece_to_push = (x + 2 * xm, y + 2 * ym)
             if piece_to_push:
                 if checkBounds((x + 3 * xm, y + 3 * ym)):
-                    board2[getIndex((x + 3 * xm, y + 3 * ym))] = second_piece * -1
-                board2[getIndex(piece_to_push)] = 0
+                    board2[(x + 3 * xm, y + 3 * ym)] = second_piece * -1
+                board2[piece_to_push] = 0
 
-        board2[getIndex((x + _x, y + _y))] = board2[getIndex((x, y))]
-        board2[getIndex((x, y))] = EMPTY
+        board2[(x + _x, y + _y)] = board2[(x, y)]
+        board2[(x, y)] = EMPTY
 
         board.player = board.player * -1
         board.winner = board.check_goal_state()
@@ -443,7 +418,7 @@ class Board:
 
             for i in range(HEIGHT):
                 for j in range(WIDTH):
-                    piece = board1[getIndex((i, j))]
+                    piece = board1[(i, j)]
                     if piece == EMPTY:
                         str_rep += '* '
                     elif piece == BLACK:
@@ -452,7 +427,7 @@ class Board:
                         str_rep += 'x '
                 str_rep += '  '
                 for j in range(WIDTH):
-                    piece = board2[getIndex((i, j))]
+                    piece = board2[(i, j)]
                     if piece == EMPTY:
                         str_rep += '* '
                     elif piece == BLACK:
