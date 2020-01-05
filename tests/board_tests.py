@@ -114,22 +114,22 @@ def test_validate_valid_move():
                             [ 0,  0,  0, 0]],
 
                             [[0, 0, 0, 0],
-                            [-1, 1., 0., 0., ],
-                            [0., 0., -1., 1., ],
-                            [0, 0, 0, 1 ]],
+                            [1, -1., 0., 0., ],
+                            [0., 0., 1., -1., ],
+                            [0, 0, 0, -1 ]],
 
-                            [[0, 0, -1., 0],
-                            [0., 0., 0., -1., ],
-                            [0., -1., 0., 0., ],
-                            [1, -1., 0, 1., ]],
+                            [[0, 0, 1., 0],
+                            [0., 0., 0., 1., ],
+                            [0., 1., 0., 0., ],
+                            [-1, 1., 0, -1., ]],
 
                             [[0, 1, 0, -1.],
                             [0., 0., 0., 0., ],
                             [1, 0, 0., -1, ],
                             [0., 0, -1, 0, ]]]))
     move = Move(2,(0,2),1,(2,2),(1,0))
-    board.player= WHITE
-    assert board.validate_move(move, validate_board_indices=False) == True
+    board.player= BLACK
+    assert board.validate_move(move) == True
 
 def test_validate_invalid_move():
     board = Board(np.array([[[-1., 0, 1, 0],
@@ -152,7 +152,7 @@ def test_validate_invalid_move():
                             [1, 0, 0., -1, ],
                             [0., 0, -1, 0, ]]]))
     move = Move(2,(0,2),1,(1,0),(-1,1))
-    assert board.validate_move(move, validate_board_indices=False) == False
+    assert board.validate_move(move) == False
 
 def test_validate_invalid_move2():
     board = Board(np.array([[[-1., 0, 1, 0],
@@ -175,7 +175,7 @@ def test_validate_invalid_move2():
                             [1, 0, 0., -1, ],
                             [0., 0, -1, 0, ]]]))
     move = Move(2,(0,2),1,(1,0),(-1,1))
-    assert board.validate_move(move, validate_board_indices=False) == False
+    assert board.validate_move(move) == False
 
 def test_validate_invalid_move_cant_push():
     board = Board(np.array([[[-1., 0, 1, 0],
@@ -198,7 +198,7 @@ def test_validate_invalid_move_cant_push():
                             [1, 0, 0., -1, ],
                             [0., 0, -1, 0, ]]]))
     move = Move(1,(1,0),2,(0,1),(1,1))
-    assert board.validate_move(move, validate_board_indices=False) == False
+    assert board.validate_move(move) == False
 
 def test_validate_valid_move2():
     board = Board(np.array([[[-1., 0, 1, 0],
@@ -211,19 +211,19 @@ def test_validate_valid_move2():
                             [0., 0., -1., 1., ],
                             [0, 0, 0, 1 ]],
 
-                            [[0, 0, -1., 0],
-                            [0., 0., 0., -1., ],
-                            [0., -1., 0., 0., ],
-                            [1, -1., 0, 1., ]],
+                            [[0, 0, 1., 0],
+                            [0., 0., 0., 1., ],
+                            [0., 1., 0., 0., ],
+                            [-1, 1., 0, -1., ]],
 
-                            [[0, 1, 0, -1.],
+                            [[0, -1, 0, 1.],
                             [0., 0., 0., 0., ],
-                            [1, 0, 0., -1, ],
-                            [0., 0, 1, 0, ]]]))
-    board.player = WHITE
+                            [-1, 0, 0., 1, ],
+                            [0., 0, -1, 0, ]]]))
+    board.player = BLACK
     move = Move(2,(1,3),3,(2,3),(1,-1))
 
-    assert board.validate_move(move, validate_board_indices=False) == True
+    assert board.validate_move(move) == True
 
 def test_validate_valid_move_push_horizontally():
     board = Board(np.array([[[0., -1, -1, 0],
@@ -300,27 +300,27 @@ def test_validate_invalid_move_wrong_board():
     assert board.validate_move(move) == False
 
 def test_validate_invalid_move_with_no_offensive_move():
-    board = Board(np.array([[[0, 0, -1., -1.],
+    board = Board(np.array([
+        [[0, 0, -1., -1.],
                                                 [ 0.,  0., 0.,  0.,],
                                                 [ 0.,  0.,  0.,  0.,],
                                                 [ 1.,  0,  -1., 0,]],
-
-                                               [[0., 0., 0., 1.],
-                                                [0., 0., 0., 0., ],
-                                                [0., 0., 0., 0., ],
-                                                [-1., -1., 0., 0., ]],
 
                                                [[0, 0, 0, -1.],
                                                 [0., 0., 0., 0., ],
                                                 [1, 0., 0., 0., ],
                                                 [1., 1., 1., 0, ]],
+        [[0., 0., 0., 1.],
+         [0., 0., 0., 0., ],
+         [0., 0., 0., 0., ],
+         [-1., -1., 0., 0., ]],
 
                                                [[0., 0., 0., 1.],
                                                 [0., 0., 0., 0., ],
                                                 [-1., 0., 0., 0., ],
                                                 [-1., 0., -1., 0, ]]]))
-    move = Move(1,(0,3),None,None,(-2,0))
-    assert board.validate_move(move, validate_board_indices=False) == False
+    move = Move(2,(0,3),None,None,(-2,0))
+    assert board.validate_move(move) == False
 
 def test_validate_valid_move_with_no_offensive_move():
     board = Board(np.array([[[0, 0, -1., -1.],
@@ -328,22 +328,24 @@ def test_validate_valid_move_with_no_offensive_move():
                                                 [ 0.,  0.,  0.,  0.,],
                                                 [ 1.,  0,  -1., 0,]],
 
-                                               [[0., 0., 0., 1.],
-                                                [0., 0., 0., 0., ],
-                                                [0., 0., 0., 0., ],
-                                                [-1., -1., 0., 0., ]],
+
 
                                                [[0, 0, 0, -1.],
                                                 [0., 0., 0., 0., ],
                                                 [1, 0., 0., 0., ],
                                                 [1., 1., 1., 0, ]],
 
+                            [[0., 0., 0., 1.],
+                             [0., 0., 0., 0., ],
+                             [0., 0., 0., 0., ],
+                             [-1., -1., 0., 0., ]],
+
                                                [[0., 0., 0., 1.],
                                                 [0., 0., 0., 0., ],
                                                 [-1., 0., 0., 0., ],
                                                 [-1., 0., -1., 0, ]]]))
-    move = Move(1,(0,3),None,None,(2,0))
-    assert board.validate_move(move, validate_board_indices=False) == True
+    move = Move(2,(0,3),None,None,(2,0))
+    assert board.validate_move(move) == True
 
 def test_validate_valid_move_can_push():
     board = Board(np.array([[[-1., 0, 1, 0],
@@ -367,7 +369,7 @@ def test_validate_valid_move_can_push():
                             [0., 0, -1, 0, ]]]))
     board.player = WHITE
     move = Move(1,(1,0),2,(0,1),(1,1))
-    assert board.validate_move(move, validate_board_indices=False) == True
+    assert board.validate_move(move) == True
 
 def test_validate_move_can_push_once():
     board = Board(np.array([[[-1, 0, 0, 0],
@@ -391,30 +393,31 @@ def test_validate_move_can_push_once():
                             [0., 0, 0, -1, ]]]))
     board.player = WHITE
     move = Move(1, (2,2), 2, (0,0), (1, 0))
-    assert board.validate_move(move, validate_board_indices=False) == True
+    assert board.validate_move(move) == True
 
 def test_validate_move_can_push_and_capture():
-    board = Board(np.array([[[0, 0, 0, 0],
+    board = Board(np.array([
+        [[1, 0, 0, 0],
+         [0, -1, 0, 0., ],
+         [0, 0, 0., 0, ],
+         [0., 0, 0, 0, ]],
+                            [[0, 0, 0, 0],
                             [ 0.,  -1, 1,  0.,],
                             [ 0,  1,  0.,  0.,],
                             [ 0,  0,  0, 0]],
-
-                            [[0, 0, 0, -1],
-                            [-1, 1, 0, 0., ],
-                            [0., 0., 0, 0, ],
-                            [-1, 0, 0, 0 ]],
 
                             [[-1, 0, 0, 0],
                             [-1, 1, 0., 0, ],
                             [0., 0, 0., 0., ],
                             [0, 1., 0, 0, ]],
 
-                            [[1, 0, 0, 0],
-                            [0, -1, 0, 0., ],
-                            [0, 0, 0., 0, ],
-                            [0., 0, 0, 0, ]]]))
-    move = Move(1, (1,1), 3, (0,0), (2, 2))
-    assert board.validate_move(move, validate_board_indices=False) == True
+                            [[0, 0, 0, -1],
+                             [-1, 1, 0, 0., ],
+                             [0., 0., 0, 0, ],
+                             [-1, 0, 0, 0]]
+                            ]))
+    move = Move(3, (1,1), 0, (0,0), (2, 2))
+    assert board.validate_move(move) == True
 
 def test_move_does_not_capture_pushes_once_horizontally():
     board = Board(np.array([[[0, 0, 0, 0],
@@ -1071,4 +1074,4 @@ def test_no_winner():
 def test_out_of_bounds_move():
     board = Board()
     move = Move(0, (0,0), 1, (0,0), (-1,-1))
-    assert board.validate_move(move, validate_board_indices=False) == False
+    assert board.validate_move(move) == False

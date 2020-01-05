@@ -1,6 +1,5 @@
 import numpy as np
 import copy
-from time import time
 
 BLACK = 1
 EMPTY = 0
@@ -95,6 +94,9 @@ class Board:
         self.player = player
         self.winner = winner
 
+    def get_flattened_board(self):
+        return self.boards.flatten()
+
     def check_goal_state(self):
         '''
         Determine whether the current state is a goal sate and if so, returns the winner.
@@ -109,8 +111,6 @@ class Board:
         return 0
 
     def does_move_capture(self, move):
-        '''Check if a move capture any opponent's piece. Returns tuple with (False, None) if move does not capture, and
-        (True, position) if move captures, where position is the position of the captured stone.'''
         if move.second_board == None:
             return (False, None)
 
@@ -236,9 +236,13 @@ class Board:
             if board_index1 == 2:
                 if board_index2 == 0:
                     return False
+                elif board_index2 is None:
+                    return True
             elif board_index1 == 3:
                 if board_index2 == 1:
                     return False
+                elif board_index2 is None:
+                    return True
             else:
                 return False
 
@@ -246,14 +250,18 @@ class Board:
             if board_index1 == 0:
                 if board_index2 == 2:
                     return False
+                elif board_index2 is None:
+                    return True
             elif board_index1 == 1:
                 if board_index2 == 3:
                     return False
+                elif board_index2 is None:
+                    return True
             else:
                 return False
         return True
 
-    def validate_move(self, move, validate_board_indices=True):
+    def validate_move(self, move):
         '''
         Determines whether the move is valid based on various conditions.
         :param move: Move
@@ -266,14 +274,9 @@ class Board:
         second_board = move.second_board
         action = move.action
 
-        if validate_board_indices == True:
-            return self.validate_board_indices(first_board, second_board) and \
-                   self.validate_offensive_move(second_board, second_source, action) and \
-                   self.validate_passive_move(first_board, first_source, action)
-        else:
-            return self.validate_offensive_move(second_board, second_source, action) and \
-                   self.validate_passive_move(first_board, first_source, action)
-        # Defensive Move. Player is only allowed to move to an unoccupied space and cannot attack any stone
+        return self.validate_board_indices(first_board, second_board) and \
+                self.validate_offensive_move(second_board, second_source, action) and \
+                self.validate_passive_move(first_board, first_source, action)
 
     def get_valid_moves(self, player=None):
         '''
@@ -355,7 +358,7 @@ class Board:
 
     def make_move(self, move):
 
-        board = self
+        board = copy.deepcopy(self)
 
         board1 = board.boards[move.first_board]
         x, y = move.first_source
@@ -438,3 +441,26 @@ class Board:
             if b == 0:
                 str_rep += '-----------------\n'
         return str_rep
+
+if __name__ == '__main__':
+    board = Board(np.array([
+        [[0, 0, -1., -1.],
+                                                [ 0.,  0., 0.,  0.,],
+                                                [ 0.,  0.,  0.,  0.,],
+                                                [ 1.,  0,  -1., 0,]],
+
+                                               [[0, 0, 0, -1.],
+                                                [0., 0., 0., 0., ],
+                                                [1, 0., 0., 0., ],
+                                                [1., 1., 1., 0, ]],
+        [[0., 0., 0., 1.],
+         [0., 0., 0., 0., ],
+         [0., 0., 0., 0., ],
+         [-1., -1., 0., 0., ]],
+
+                                               [[0., 0., 0., 1.],
+                                                [0., 0., 0., 0., ],
+                                                [-1., 0., 0., 0., ],
+                                                [-1., 0., -1., 0, ]]]))
+    move = Move(2,(0,3),None,None,(-2,0))
+    print(board.validate_move(move))
